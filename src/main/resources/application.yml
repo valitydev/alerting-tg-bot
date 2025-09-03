@@ -1,0 +1,48 @@
+server:
+  port: 8082
+management:
+  security:
+    flag: false
+  server:
+    port: 8083
+  metrics:
+    tags:
+      application: ${project.name}
+    export:
+      prometheus:
+        enabled: true
+  endpoint:
+    health:
+      show-details: always
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+
+spring:
+  application:
+    name: '@project.name@'
+  output:
+    ansi:
+      enabled: always
+  main:
+    allow-bean-definition-overriding: true
+
+info:
+  version: '@project.version@'
+  stage: dev
+
+bot:
+  token: ${botToken}
+  name: vality_alerting_bot
+  chatId: ${chatId}
+  topics:
+    commands: ${topicCommands}
+    errors5xx: ${topicErrors5xx}
+    altpay-conversion: ${topicAltpayConversion}
+    failed-machines: ${topicFailedMachines}
+    pending-payments: ${topicPendingPayments}
