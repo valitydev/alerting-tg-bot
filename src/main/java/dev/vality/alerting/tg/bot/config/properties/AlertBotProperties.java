@@ -15,4 +15,6 @@ public class AlertBotProperties {
     private String token;
     @NotNull
     private String name;
+    @NotNull
+    private Long chatId;
 }

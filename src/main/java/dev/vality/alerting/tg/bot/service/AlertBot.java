@@ -13,8 +13,6 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 
 @Slf4j
 @Service
@@ -22,17 +20,14 @@ import java.util.concurrent.ScheduledExecutorService;
 @EnableScheduling
 public class AlertBot extends TelegramLongPollingBot {
 
+    private final AlertBotProperties properties;
     private static final Map<Long, List<String>> activeTopics = new HashMap<>();
     private static final Set<Long> waitingForTopicName = new HashSet<>();
-    private static final long CHAT_ID = -1002513564906L;
     private static final int COMMANDS_TOPIC_ID = 3;
     private static final int ERRORS_5XX_TOPIC_ID = 9;
     private static final int ALTPAY_CONVERSION_TOPIC_ID = 11;
     private static final int FAILED_MACHINES_TOPIC_ID = 7;
     private static final int PENDING_PAYMENTS_TOPIC_ID = 17;
-
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-    private final AlertBotProperties properties;
 
     @Override
     public String getBotUsername() {
@@ -47,6 +42,15 @@ public class AlertBot extends TelegramLongPollingBot {
     @Override
     public void onUpdateReceived(Update update) {
         if (update.hasMessage() && update.getMessage().hasText()) {
+
+            log.debug("Получено сообщение: message={}, chatId={}, threadId={}, user=@{}, text='{}'",
+                    update.getMessage(),
+                    update.getMessage().getChatId(),
+                    update.getMessage().getMessageThreadId(),
+                    update.getMessage().getFrom() != null ? update.getMessage().getFrom().getUserName() : null,
+                    update.getMessage().getText().replace('\n', ' ')
+            );
+
             Message message = update.getMessage();
             Long chatId = message.getChatId();
             Integer threadId = message.getMessageThreadId();
@@ -70,11 +74,11 @@ public class AlertBot extends TelegramLongPollingBot {
     }
 
     public void sendScheduledMetrics() {
-        send5xxErrorsMetrics(CHAT_ID);
-        sendFailedMachinesMetrics(CHAT_ID);
-        sendPendingPaymentsMetrics(CHAT_ID);
-        sendAltPayConversionMetrics(CHAT_ID);
-        sendMessageToLastTopic(CHAT_ID);
+        send5xxErrorsMetrics(properties.getChatId());
+        sendFailedMachinesMetrics(properties.getChatId());
+        sendPendingPaymentsMetrics(properties.getChatId());
+        sendAltPayConversionMetrics(properties.getChatId());
+        sendMessageToLastTopic(properties.getChatId());
     }
 
     // Просим ввести название топика (только в командном топике)

@@ -73,13 +73,6 @@
             <artifactId>caffeine</artifactId>
         </dependency>
 
-        <!-- vality -->
-        <dependency>
-            <groupId>dev.vality</groupId>
-            <artifactId>alert-tg-bot-proto</artifactId>
-            <version>1.4-adf83ed</version>
-        </dependency>
-
         <!--third party-->
         <dependency>
             <groupId>org.telegram</groupId>
