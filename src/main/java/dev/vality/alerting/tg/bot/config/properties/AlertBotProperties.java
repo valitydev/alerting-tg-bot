@@ -17,4 +17,21 @@ public class AlertBotProperties {
     private String name;
     @NotNull
     private Long chatId;
+
+    @NotNull
+    private Topics topics;
+
+    @Data
+    public static class Topics {
+        @NotNull
+        private Integer commands;
+        @NotNull
+        private Integer errors5xx;
+        @NotNull
+        private Integer altpayConversion;
+        @NotNull
+        private Integer failedMachines;
+        @NotNull
+        private Integer pendingPayments;
+    }
 }

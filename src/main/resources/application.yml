@@ -40,3 +40,9 @@ bot:
   token: ${token}
   name: vality_alerting_bot
   chatId: ${chatId}
+  topics:
+    commands: 3
+    errors5xx: 9
+    altpay-conversion: 11
+    failed-machines: 7
+    pending-payments: 17

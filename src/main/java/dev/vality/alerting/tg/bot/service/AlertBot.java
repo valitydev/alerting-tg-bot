@@ -23,11 +23,6 @@ public class AlertBot extends TelegramLongPollingBot {
     private final AlertBotProperties properties;
     private static final Map<Long, List<String>> activeTopics = new HashMap<>();
     private static final Set<Long> waitingForTopicName = new HashSet<>();
-    private static final int COMMANDS_TOPIC_ID = 3;
-    private static final int ERRORS_5XX_TOPIC_ID = 9;
-    private static final int ALTPAY_CONVERSION_TOPIC_ID = 11;
-    private static final int FAILED_MACHINES_TOPIC_ID = 7;
-    private static final int PENDING_PAYMENTS_TOPIC_ID = 17;
 
     @Override
     public String getBotUsername() {
@@ -56,7 +51,7 @@ public class AlertBot extends TelegramLongPollingBot {
             Integer threadId = message.getMessageThreadId();
 
             // ❗ Фильтруем команды — они должны выполняться только в командном топике
-            if (!threadId.equals(COMMANDS_TOPIC_ID)) {
+            if (!threadId.equals(properties.getTopics().getCommands())) {
                 return;
             }
 
@@ -68,7 +63,7 @@ public class AlertBot extends TelegramLongPollingBot {
             } else if (text.startsWith("/delete_alert_topic")) {
                 deleteTopic(chatId);
             } else {
-                sendResponse(chatId, COMMANDS_TOPIC_ID, "Неизвестная команда.", null);
+                sendResponse(chatId, properties.getTopics().getCommands(), "Неизвестная команда.", null);
             }
         }
     }
@@ -84,7 +79,7 @@ public class AlertBot extends TelegramLongPollingBot {
     // Просим ввести название топика (только в командном топике)
     private void promptForTopicName(Long chatId) {
         waitingForTopicName.add(chatId);
-        sendResponse(chatId, COMMANDS_TOPIC_ID, "Введите название для нового топика:", null);
+        sendResponse(chatId, properties.getTopics().getCommands(), "Введите название для нового топика:", null);
     }
 
     // Создание топика по введённому названию
@@ -103,17 +98,18 @@ public class AlertBot extends TelegramLongPollingBot {
             // Добавляем топик в список, если у чата уже есть созданные топики
             activeTopics.computeIfAbsent(chatId, k -> new ArrayList<>()).add(String.valueOf(messageThreadId));
 
-            sendResponse(chatId, COMMANDS_TOPIC_ID, "✅ Топик '" + topicName + "' создан.", null);
+            sendResponse(chatId, properties.getTopics().getCommands(), "✅ Топик '" + topicName + "' создан.", null);
             sendResponse(chatId, null, "✅ Топик '" + topicName + "' создан.", null);
         } catch (TelegramApiException e) {
             log.error("Ошибка при создании топика", e);
-            sendResponse(chatId, COMMANDS_TOPIC_ID, "❌ Ошибка при создании топика.", null);
+            sendResponse(chatId, properties.getTopics().getCommands(), "❌ Ошибка при создании топика.", null);
         }
     }
 
     // Удаление топика (пока API не поддерживает удаление)
     private void deleteTopic(Long chatId) {
-        sendResponse(chatId, COMMANDS_TOPIC_ID, "🗑 Топик удалён (на самом деле, нет, API не поддерживает).", null);
+        sendResponse(chatId, properties.getTopics().getCommands(),
+                "🗑 Топик удалён (на самом деле, нет, API не поддерживает).", null);
     }
 
     private void sendMessageToLastTopic(Long chatId) {
@@ -143,7 +139,7 @@ public class AlertBot extends TelegramLongPollingBot {
                 492, 7223, 42,
                 545, 9998, 55);
 
-        sendResponse(chatId, ERRORS_5XX_TOPIC_ID, messageText, "MarkdownV2");
+        sendResponse(chatId, properties.getTopics().getErrors5xx(), messageText, "MarkdownV2");
     }
 
     // Заглушка для отправки метрики "Рост числа платежей без финального статуса"
@@ -163,7 +159,7 @@ public class AlertBot extends TelegramLongPollingBot {
                 244, 7556, 42,
                 345, 1129, 55);
 
-        sendResponse(chatId, PENDING_PAYMENTS_TOPIC_ID, messageText, "MarkdownV2");
+        sendResponse(chatId, properties.getTopics().getPendingPayments(), messageText, "MarkdownV2");
     }
 
     // Заглушка для отправки метрики "Рост числа упавших машин"
@@ -183,7 +179,7 @@ public class AlertBot extends TelegramLongPollingBot {
                 234, 7034, 42,
                 595, 9032, 55);
 
-        sendResponse(chatId, FAILED_MACHINES_TOPIC_ID, messageText, "MarkdownV2");
+        sendResponse(chatId, properties.getTopics().getFailedMachines(), messageText, "MarkdownV2");
     }
 
     // Заглушка для отправки метрики "Конверсия альтернативных платежей"
@@ -203,7 +199,7 @@ public class AlertBot extends TelegramLongPollingBot {
                 240, 7234, "dead", 15.85, 90.02,
                 538, 9456, "alive", 50.10, 40.20);
 
-        sendResponse(chatId, ALTPAY_CONVERSION_TOPIC_ID, messageText, "MarkdownV2");
+        sendResponse(chatId, properties.getTopics().getAltpayConversion(), messageText, "MarkdownV2");
     }
 
     // Заглушка для отправки алерта по 5xx кодам для одного провайдера и терминала
