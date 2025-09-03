@@ -37,12 +37,12 @@ info:
   stage: dev
 
 bot:
-  token: ${token}
+  token: ${botToken}
   name: vality_alerting_bot
   chatId: ${chatId}
   topics:
-    commands: 3
-    errors5xx: 9
-    altpay-conversion: 11
-    failed-machines: 7
-    pending-payments: 17
+    commands: ${topicCommands}
+    errors5xx: ${topicErrors5xx}
+    altpay-conversion: ${topicAltpayConversion}
+    failed-machines: ${topicFailedMachines}
+    pending-payments: ${topicPendingPayments}
