@@ -1,6 +1,7 @@
 package dev.vality.alerting.tg.bot.service;
 
 import dev.vality.alerting.tg.bot.config.properties.AlertBotProperties;
+import dev.vality.alerting.tg.bot.model.Webhook;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -66,6 +67,11 @@ public class AlertBot extends TelegramLongPollingBot {
                 sendResponse(chatId, properties.getTopics().getCommands(), "Неизвестная команда.", null);
             }
         }
+    }
+
+    public void sendAlertMessage(Webhook webhook) {
+        sendResponse(properties.getChatId(), properties.getTopics().getCommands(), webhook.getAlerts().toString(),
+                null);
     }
 
     public void sendScheduledMetrics() {
