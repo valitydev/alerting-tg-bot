@@ -69,8 +69,8 @@ class WebhookControllerWithInterceptorTest {
     @Test
     void whenWebhookPosted_thenTestInterceptorInvokesTelegramSender() throws Exception {
         String json = """
-        { "status":"firing", "alerts":[ { "status":"firing" } ] }
-        """;
+                { "status":"firing", "alerts":[ { "status":"firing" } ] }
+                """;
 
         mvc.perform(post("/alertmanager/webhook")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -90,7 +90,10 @@ class WebhookControllerWithInterceptorTest {
         HandlerInterceptor webhookNotifyInterceptor() {
             return new HandlerInterceptor() {
                 @Override
-                public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, @Nullable Exception ex) {
+                public void afterCompletion(HttpServletRequest request,
+                                            HttpServletResponse response,
+                                            Object handler,
+                                            @Nullable Exception ex) {
                     if (request.getRequestURI().equals("/alertmanager/webhook") && response.getStatus() == 200) {
                         telegramSender.send("alertmanager webhook handled");
                     }
