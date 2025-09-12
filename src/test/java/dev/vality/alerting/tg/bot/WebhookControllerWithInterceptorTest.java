@@ -57,7 +57,7 @@ class WebhookControllerWithInterceptorTest {
     RequestMappingHandlerMapping mappings;
 
     @Test
-    void mappingExists_sanityCheck() {
+    void mappingExistSanityCheck() {
         var exists = mappings.getHandlerMethods().keySet().stream()
                 .anyMatch(i -> i.getPatternsCondition().getPatterns().stream()
                         .anyMatch(p -> p.equals("/alertmanager/webhook")));
@@ -67,7 +67,7 @@ class WebhookControllerWithInterceptorTest {
     }
 
     @Test
-    void whenWebhookPosted_thenTestInterceptorInvokesTelegramSender() throws Exception {
+    void whenWebhookPostedThenTestInterceptorInvokesTelegramSender() throws Exception {
         String json = """
                 { "status":"firing", "alerts":[ { "status":"firing" } ] }
                 """;
