@@ -22,6 +22,7 @@ import static org.mockito.Mockito.verify;
 
 @SpringBootTest
 @TestPropertySource(properties = {
+        "spring.cloud.vault.enabled=false",
         "spring.mvc.pathmatch.matching-strategy=ant_path_matcher",
         "bot.token=test",
         "bot.name=vality_alerting_bot",
