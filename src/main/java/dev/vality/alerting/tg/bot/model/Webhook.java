@@ -1,6 +1,8 @@
 package dev.vality.alerting.tg.bot.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 import java.util.Map;
@@ -9,6 +11,8 @@ import java.util.Map;
  * Alertmanager webhook body
  */
 @Data
+@NoArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Webhook {
 
     private String status;
@@ -16,6 +20,8 @@ public class Webhook {
     private List<Alert> alerts;
 
     @Data
+    @NoArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Alert {
 
         private String status;
