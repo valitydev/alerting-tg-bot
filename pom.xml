@@ -10,6 +10,7 @@
         <version>3.0.9</version>
     </parent>
 
+    <name>alerting-tg-bot</name>
     <artifactId>alerting-tg-bot</artifactId>
     <version>1.0.0</version>
 

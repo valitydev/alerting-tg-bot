@@ -10,11 +10,9 @@ import org.telegram.telegrambots.client.okhttp.OkHttpTelegramClient;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 @Configuration
-@EnableConfigurationProperties(AlertBotProperties.class)
+//@EnableConfigurationProperties(AlertBotProperties.class)
 @RequiredArgsConstructor
 public class AlertBotConfig {
-
-    private final AlertBot alertBot;
 
     @Bean
     public TelegramClient telegramClient(AlertBotProperties properties) {
