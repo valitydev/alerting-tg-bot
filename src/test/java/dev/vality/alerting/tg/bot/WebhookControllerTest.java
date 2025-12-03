@@ -1,7 +1,6 @@
 package dev.vality.alerting.tg.bot;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.vality.alerting.tg.bot.config.AlertBotConfig;
 import dev.vality.alerting.tg.bot.config.properties.AlertmanagerWebhookProperties;
 import dev.vality.alerting.tg.bot.controller.WebhookController;
 import dev.vality.alerting.tg.bot.model.Webhook;
@@ -9,13 +8,12 @@ import dev.vality.alerting.tg.bot.service.AlertBot;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.telegram.telegrambots.longpolling.starter.TelegramBotStarterConfiguration;
+import org.telegram.telegrambots.longpolling.starter.TelegramBotInitializer;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 import java.nio.charset.StandardCharsets;
@@ -24,7 +22,6 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.Mockito.verify;
 
 @SpringBootTest
-@ImportAutoConfiguration(exclude = TelegramBotStarterConfiguration.class)
 @TestPropertySource(properties = {
         "spring.cloud.vault.enabled=false",
         "spring.mvc.pathmatch.matching-strategy=ant_path_matcher",
@@ -46,13 +43,10 @@ public class WebhookControllerTest {
     AlertBot alertBot;
 
     @MockitoBean
-    AlertBotConfig alertBotConfig;
-
-    @MockitoBean
     TelegramClient telegramClient;
 
     @MockitoBean
-    TelegramBotStarterConfiguration configuration;
+    TelegramBotInitializer telegramBotInitializer;
 
     String webhookJson = """
             {
