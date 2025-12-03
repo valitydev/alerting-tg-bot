@@ -14,6 +14,7 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 import java.nio.charset.StandardCharsets;
 
@@ -43,6 +44,9 @@ public class WebhookControllerTest {
 
     @MockitoBean
     AlertBotConfig alertBotConfig;
+
+    @MockitoBean
+    private TelegramClient telegramClient;
 
     String webhookJson = """
             {
