@@ -49,7 +49,10 @@ public class WebhookControllerTest {
     AlertBotConfig alertBotConfig;
 
     @MockitoBean
-    private TelegramClient telegramClient;
+    TelegramClient telegramClient;
+
+    @MockitoBean
+    TelegramBotStarterConfiguration configuration;
 
     String webhookJson = """
             {
