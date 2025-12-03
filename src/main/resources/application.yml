@@ -31,6 +31,14 @@ spring:
       enabled: always
   main:
     allow-bean-definition-overriding: true
+  cloud:
+    vault:
+      kv:
+        enabled: true
+      uri: https://vault.vality.dev:443
+      authentication: TOKEN
+      scheme: http
+      token: "123456"
 
 info:
   version: '@project.version@'
@@ -46,3 +54,7 @@ bot:
     altpay-conversion: ${topicAltpayConversion}
     failed-machines: ${topicFailedMachines}
     pending-payments: ${topicPendingPayments}
+
+alertmanager:
+  webhook:
+    url: http://localhost:8082/alertmanager/webhook

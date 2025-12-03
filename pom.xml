@@ -10,6 +10,7 @@
         <version>3.0.9</version>
     </parent>
 
+    <name>alerting-tg-bot</name>
     <artifactId>alerting-tg-bot</artifactId>
     <version>1.0.0</version>
 
@@ -23,6 +24,7 @@
         <management.port>8023</management.port>
         <exposed.ports>${server.port} ${management.port}</exposed.ports>
         <testcontainers.annotations.version>2.0.4</testcontainers.annotations.version>
+        <org.telegram.telegrambots.version>9.0.0</org.telegram.telegrambots.version>
     </properties>
 
     <dependencyManagement>
@@ -80,8 +82,18 @@
         <!--third party-->
         <dependency>
             <groupId>org.telegram</groupId>
-            <artifactId>telegrambots-spring-boot-starter</artifactId>
-            <version>6.9.7.1</version>
+            <artifactId>telegrambots-springboot-longpolling-starter</artifactId>
+            <version>${org.telegram.telegrambots.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.telegram</groupId>
+            <artifactId>telegrambots-client</artifactId>
+            <version>${org.telegram.telegrambots.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.telegram</groupId>
+            <artifactId>telegrambots-meta</artifactId>
+            <version>${org.telegram.telegrambots.version}</version>
         </dependency>
         <dependency>
             <groupId>javax.ws.rs</groupId>

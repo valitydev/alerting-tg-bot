@@ -1,22 +1,18 @@
 package dev.vality.alerting.tg.bot.config;
 
-import dev.vality.alerting.tg.bot.service.AlertBot;
+import dev.vality.alerting.tg.bot.config.properties.AlertBotProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.telegram.telegrambots.meta.TelegramBotsApi;
-import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
+import org.telegram.telegrambots.client.okhttp.OkHttpTelegramClient;
+import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 @Configuration
 @RequiredArgsConstructor
 public class AlertBotConfig {
 
-    private final AlertBot alertBot;
-
     @Bean
-    public TelegramBotsApi telegramBotsApi() throws Exception {
-        TelegramBotsApi api = new TelegramBotsApi(DefaultBotSession.class);
-        api.registerBot(alertBot);
-        return api;
+    public TelegramClient telegramClient(AlertBotProperties properties) {
+        return new OkHttpTelegramClient(properties.getToken());
     }
 }

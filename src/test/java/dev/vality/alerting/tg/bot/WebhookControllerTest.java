@@ -1,7 +1,6 @@
 package dev.vality.alerting.tg.bot;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.vality.alerting.tg.bot.config.AlertBotConfig;
 import dev.vality.alerting.tg.bot.config.properties.AlertmanagerWebhookProperties;
 import dev.vality.alerting.tg.bot.controller.WebhookController;
 import dev.vality.alerting.tg.bot.model.Webhook;
@@ -14,6 +13,8 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.telegram.telegrambots.longpolling.starter.TelegramBotInitializer;
+import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 import java.nio.charset.StandardCharsets;
 
@@ -42,7 +43,10 @@ public class WebhookControllerTest {
     AlertBot alertBot;
 
     @MockitoBean
-    AlertBotConfig alertBotConfig;
+    TelegramClient telegramClient;
+
+    @MockitoBean
+    TelegramBotInitializer telegramBotInitializer;
 
     String webhookJson = """
             {

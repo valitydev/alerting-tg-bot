@@ -6,12 +6,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.stereotype.Service;
-import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.longpolling.starter.SpringLongPollingBot;
+import org.telegram.telegrambots.longpolling.util.LongPollingSingleThreadUpdateConsumer;
 import org.telegram.telegrambots.meta.api.methods.forum.CreateForumTopic;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 import java.util.*;
 
@@ -19,16 +21,12 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 @EnableScheduling
-public class AlertBot extends TelegramLongPollingBot {
+public class AlertBot implements SpringLongPollingBot, LongPollingSingleThreadUpdateConsumer {
 
     private final AlertBotProperties properties;
+    private final TelegramClient telegramClient;
     private static final Map<Long, List<String>> activeTopics = new HashMap<>();
     private static final Set<Long> waitingForTopicName = new HashSet<>();
-
-    @Override
-    public String getBotUsername() {
-        return properties.getName();
-    }
 
     @Override
     public String getBotToken() {
@@ -36,7 +34,12 @@ public class AlertBot extends TelegramLongPollingBot {
     }
 
     @Override
-    public void onUpdateReceived(Update update) {
+    public LongPollingSingleThreadUpdateConsumer getUpdatesConsumer() {
+        return this;
+    }
+
+    @Override
+    public void consume(Update update) {
         if (update.hasMessage() && update.getMessage().hasText()) {
 
             log.debug("Получено сообщение: message={}, chatId={}, threadId={}, user=@{}, text='{}'",
@@ -98,7 +101,7 @@ public class AlertBot extends TelegramLongPollingBot {
                     .name(topicName)
                     .build();
 
-            Integer messageThreadId = execute(createForumTopic).getMessageThreadId();
+            Integer messageThreadId = telegramClient.execute(createForumTopic).getMessageThreadId();
 //            activeTopics.put(chatId, String.valueOf(messageThreadId));
 
             // Добавляем топик в список, если у чата уже есть созданные топики
@@ -231,7 +234,7 @@ public class AlertBot extends TelegramLongPollingBot {
                 .build();
 
         try {
-            execute(message);
+            telegramClient.execute(message);
         } catch (TelegramApiException e) {
             log.error("Ошибка при отправке сообщения", e);
         }
