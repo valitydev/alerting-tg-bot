@@ -2,6 +2,7 @@ package dev.vality.alerting.tg.bot.service;
 
 import dev.vality.alerting.tg.bot.config.properties.AlertBotProperties;
 import dev.vality.alerting.tg.bot.model.Webhook;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -29,12 +30,17 @@ public class AlertBot implements SpringLongPollingBot, LongPollingSingleThreadUp
     private final TelegramClient telegramClient;
     private static final Map<Long, List<String>> activeTopics = new HashMap<>();
     private static final Set<Long> waitingForTopicName = new HashSet<>();
-    private static final Map<String, Integer> ALERT_TOPICS = Map.of(
-            "APIErrorHttpCodeIncrease", 9,
-            "AltPayConversion", 11,
-            "FailedMachines", 7,
-            "PendingPayments", 17
-    );
+    private Map<String, Integer> alertTopics;
+
+    @PostConstruct
+    public void init() {
+        alertTopics = Map.of(
+                "APIErrorHttpCodeIncrease", properties.getTopics().getErrors5xx(),
+                "AltPayConversion", properties.getTopics().getAltpayConversion(),
+                "FailedMachines", properties.getTopics().getFailedMachines(),
+                "PendingPayments", properties.getTopics().getPendingPayments()
+        );
+    }
 
     @Override
     public String getBotToken() {
@@ -98,7 +104,7 @@ public class AlertBot implements SpringLongPollingBot, LongPollingSingleThreadUp
 
         sendResponse(
                 properties.getChatId(),
-                ALERT_TOPICS.get(alertName),
+                alertTopics.get(alertName),
                 formatWebhook(webhook),
                 "MarkdownV2"
         );
@@ -110,6 +116,15 @@ public class AlertBot implements SpringLongPollingBot, LongPollingSingleThreadUp
         sendPendingPaymentsMetrics(properties.getChatId());
         sendAltPayConversionMetrics(properties.getChatId());
         sendMessageToLastTopic(properties.getChatId());
+    }
+
+    private Map<String, Integer> buildAlertTopicMap() {
+        return Map.of(
+                "APIErrorHttpCodeIncrease", properties.getTopics().getErrors5xx(),
+                "AltPayConversion", properties.getTopics().getAltpayConversion(),
+                "FailedMachines", properties.getTopics().getFailedMachines(),
+                "PendingPayments", properties.getTopics().getPendingPayments()
+        );
     }
 
     // Просим ввести название топика (только в командном топике)
