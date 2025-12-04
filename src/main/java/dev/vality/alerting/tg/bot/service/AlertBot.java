@@ -18,7 +18,8 @@ import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 import java.util.*;
 
-import static dev.vality.alerting.tg.bot.util.WebhookFormatter.formatWebhook;
+import static dev.vality.alerting.tg.bot.util.WebhookUtil.extractAlertname;
+import static dev.vality.alerting.tg.bot.util.WebhookUtil.formatWebhook;
 
 @Slf4j
 @Service
@@ -34,12 +35,7 @@ public class AlertBot implements SpringLongPollingBot, LongPollingSingleThreadUp
 
     @PostConstruct
     public void init() {
-        alertTopics = Map.of(
-                "APIErrorHttpCodeIncrease", properties.getTopics().getErrors5xx(),
-                "AltPayConversion", properties.getTopics().getAltpayConversion(),
-                "FailedMachines", properties.getTopics().getFailedMachines(),
-                "PendingPayments", properties.getTopics().getPendingPayments()
-        );
+        alertTopics = buildAlertTopicMap();
     }
 
     @Override
@@ -91,16 +87,7 @@ public class AlertBot implements SpringLongPollingBot, LongPollingSingleThreadUp
             return;
         }
 
-        String alertName;
-        if (webhook.getCommonLabels() != null) {
-            alertName = webhook.getCommonLabels().getAlertname();
-        } else if (webhook.getGroupLabels() != null) {
-            alertName = webhook.getGroupLabels().getAlertname();
-        } else if (webhook.getAlerts().getFirst().getLabels() != null) {
-            alertName = webhook.getAlerts().getFirst().getLabels().getAlertname();
-        } else {
-            return;
-        }
+        String alertName = extractAlertname(webhook);
 
         sendResponse(
                 properties.getChatId(),

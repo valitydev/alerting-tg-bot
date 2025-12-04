@@ -1,12 +1,10 @@
 package dev.vality.alerting.tg.bot.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Alertmanager webhook body
@@ -31,7 +29,6 @@ public class Webhook {
     @NoArgsConstructor
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Alert {
-
         private String status;
         private Label labels;
         private Annotation annotations;
@@ -45,14 +42,7 @@ public class Webhook {
     @NoArgsConstructor
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Label {
-
         private String alertname;
-        @JsonProperty("api_type")
-        private String apiType;
-        private String code;
-        private String prometheus;
-        private String team;
-        private String url;
     }
 
     @Data
