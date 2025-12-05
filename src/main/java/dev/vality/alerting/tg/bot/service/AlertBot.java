@@ -87,7 +87,14 @@ public class AlertBot implements SpringLongPollingBot, LongPollingSingleThreadUp
             return;
         }
 
-        String alertName = extractAlertname(webhook);
+        Optional<String> alertNameOpt = extractAlertname(webhook);
+
+        if (alertNameOpt.isEmpty()) {
+            log.error("Alertname is null: {}", webhook);
+            return;
+        }
+
+        String alertName = alertNameOpt.get();
 
         sendResponse(
                 properties.getChatId(),
