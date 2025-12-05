@@ -2,6 +2,7 @@ package dev.vality.alerting.tg.bot.service;
 
 import dev.vality.alerting.tg.bot.config.properties.AlertBotProperties;
 import dev.vality.alerting.tg.bot.model.Webhook;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -17,6 +18,9 @@ import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 import java.util.*;
 
+import static dev.vality.alerting.tg.bot.util.WebhookUtil.extractAlertname;
+import static dev.vality.alerting.tg.bot.util.WebhookUtil.formatWebhook;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -27,6 +31,12 @@ public class AlertBot implements SpringLongPollingBot, LongPollingSingleThreadUp
     private final TelegramClient telegramClient;
     private static final Map<Long, List<String>> activeTopics = new HashMap<>();
     private static final Set<Long> waitingForTopicName = new HashSet<>();
+    private Map<String, Integer> alertTopics;
+
+    @PostConstruct
+    public void init() {
+        alertTopics = buildAlertTopicMap();
+    }
 
     @Override
     public String getBotToken() {
@@ -73,8 +83,25 @@ public class AlertBot implements SpringLongPollingBot, LongPollingSingleThreadUp
     }
 
     public void sendAlertMessage(Webhook webhook) {
-        sendResponse(properties.getChatId(), properties.getTopics().getCommands(), webhook.getAlerts().toString(),
-                null);
+        if (webhook.getAlerts() == null || webhook.getAlerts().isEmpty()) {
+            return;
+        }
+
+        Optional<String> alertNameOpt = extractAlertname(webhook);
+
+        if (alertNameOpt.isEmpty()) {
+            log.error("Alertname is null: {}", webhook);
+            return;
+        }
+
+        String alertName = alertNameOpt.get();
+
+        sendResponse(
+                properties.getChatId(),
+                alertTopics.get(alertName),
+                formatWebhook(webhook),
+                "MarkdownV2"
+        );
     }
 
     public void sendScheduledMetrics() {
@@ -83,6 +110,15 @@ public class AlertBot implements SpringLongPollingBot, LongPollingSingleThreadUp
         sendPendingPaymentsMetrics(properties.getChatId());
         sendAltPayConversionMetrics(properties.getChatId());
         sendMessageToLastTopic(properties.getChatId());
+    }
+
+    private Map<String, Integer> buildAlertTopicMap() {
+        return Map.of(
+                "APIErrorHttpCodeIncrease", properties.getTopics().getErrors5xx(),
+                "AltPayConversion", properties.getTopics().getAltpayConversion(),
+                "FailedMachines", properties.getTopics().getFailedMachines(),
+                "PendingPayments", properties.getTopics().getPendingPayments()
+        );
     }
 
     // Просим ввести название топика (только в командном топике)
