@@ -287,16 +287,6 @@ public class AlertBot implements SpringLongPollingBot, LongPollingSingleThreadUp
     }
 
     private Integer getFailedMachinesThreadId(Webhook webhook) {
-        //достаю из лейблов поля providerId и terminalId
-        //проверяю, есть ли по сочетанию таких providerId и terminalId запись
-        // в таблице alrt_tg_bot.provider_terminal_topic
-        //если есть, то возвращаю поле threadId этой записи
-        //если нет, то создаю топик для такого сочетания providerId и terminalId, формируя название
-        // из providerName и terminalName
-        //получаю threadId
-        //и создаю в таблице alrt_tg_bot.provider_terminal_topic запись для такого сочетания providerId и terminalId
-        //затем возвращаю threadId этого топика
-
         var alert = webhook.getAlerts().stream()
                 .filter(a -> a.getLabels() != null)
                 .filter(a -> FAILED_MACHINES.equals(a.getLabels().getAlertname()))
