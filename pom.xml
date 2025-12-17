@@ -23,7 +23,13 @@
         <server.port>8022</server.port>
         <management.port>8023</management.port>
         <exposed.ports>${server.port} ${management.port}</exposed.ports>
-        <testcontainers.annotations.version>2.0.4</testcontainers.annotations.version>
+        <db.name>alerting_tg_bot</db.name>
+        <db.port>5432</db.port>
+        <db.url>jdbc:postgresql://localhost:${db.port}/${db.name}</db.url>
+        <db.user>postgres</db.user>
+        <db.password>postgres</db.password>
+        <db.schema>alrt_tg_bot</db.schema>
+        <testcontainers.annotations.version>3.2.1</testcontainers.annotations.version>
         <org.telegram.telegrambots.version>9.0.0</org.telegram.telegrambots.version>
     </properties>
 
@@ -40,6 +46,12 @@
     </dependencyManagement>
 
     <dependencies>
+        <!--vality-->
+        <dependency>
+            <groupId>dev.vality</groupId>
+            <artifactId>db-common-lib</artifactId>
+        </dependency>
+
         <!--spring-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -96,6 +108,18 @@
             <version>${org.telegram.telegrambots.version}</version>
         </dependency>
         <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+        <dependency>
             <groupId>javax.ws.rs</groupId>
             <artifactId>javax.ws.rs-api</artifactId>
             <version>2.1.1</version>
@@ -128,7 +152,12 @@
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-contract-wiremock</artifactId>
-            <version>4.1.4</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>dev.vality</groupId>
+            <artifactId>testcontainers-annotations</artifactId>
+            <version>${testcontainers.annotations.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -182,6 +211,97 @@
                     <execution>
                         <goals>
                             <goal>process</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-maven-plugin</artifactId>
+                <configuration>
+                    <url>${db.url}</url>
+                    <user>${db.user}</user>
+                    <password>${db.password}</password>
+                    <schemas>
+                        <schema>${db.schema}</schema>
+                    </schemas>
+                    <locations>
+                        <location>filesystem:${project.basedir}/src/main/resources/db/migration</location>
+                    </locations>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>migrate</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>migrate</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.jooq</groupId>
+                <artifactId>jooq-codegen-maven</artifactId>
+                <configuration>
+                    <jdbc>
+                        <driver>org.postgresql.Driver</driver>
+                        <url>${db.url}</url>
+                        <user>${db.user}</user>
+                        <password>${db.password}</password>
+                    </jdbc>
+                    <generator>
+                        <generate>
+                            <javaTimeTypes>true</javaTimeTypes>
+                            <pojos>true</pojos>
+                            <pojosEqualsAndHashCode>true</pojosEqualsAndHashCode>
+                            <pojosToString>true</pojosToString>
+                        </generate>
+                        <database>
+                            <name>org.jooq.meta.postgres.PostgresDatabase</name>
+                            <includes>.*</includes>
+                            <excludes>schema_version|flyway_schema_history</excludes>
+                            <inputSchema>${db.schema}</inputSchema>
+                        </database>
+                        <target>
+                            <packageName>dev.vality.alerting.tg.bot.domain</packageName>
+                            <directory>target/generated-sources/jooq</directory>
+                        </target>
+                    </generator>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>gen-src</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>dev.vality.maven.plugins</groupId>
+                <artifactId>pg-embedded-plugin</artifactId>
+                <version>2.0.0</version>
+                <configuration>
+                    <port>${db.port}</port>
+                    <dbName>${db.name}</dbName>
+                    <schemas>
+                        <schema>${db.schema}</schema>
+                    </schemas>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>PG_server_start</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>start</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>PG_server_stop</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>stop</goal>
                         </goals>
                     </execution>
                 </executions>

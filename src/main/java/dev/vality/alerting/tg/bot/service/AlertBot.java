@@ -1,7 +1,9 @@
 package dev.vality.alerting.tg.bot.service;
 
 import dev.vality.alerting.tg.bot.config.properties.AlertBotProperties;
+import dev.vality.alerting.tg.bot.dao.ProviderTerminalTopicDao;
 import dev.vality.alerting.tg.bot.model.Webhook;
+import dev.vality.alerting.tg.bot.pojo.ProviderTerminalTopic;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +20,7 @@ import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 import java.util.*;
 
+import static dev.vality.alerting.tg.bot.constant.AlertTopicName.*;
 import static dev.vality.alerting.tg.bot.util.WebhookUtil.extractAlertname;
 import static dev.vality.alerting.tg.bot.util.WebhookUtil.formatWebhook;
 
@@ -29,6 +32,7 @@ public class AlertBot implements SpringLongPollingBot, LongPollingSingleThreadUp
 
     private final AlertBotProperties properties;
     private final TelegramClient telegramClient;
+    private final ProviderTerminalTopicDao providerTerminalTopicDao;
     private static final Map<Long, List<String>> activeTopics = new HashMap<>();
     private static final Set<Long> waitingForTopicName = new HashSet<>();
     private Map<String, Integer> alertTopics;
@@ -95,10 +99,16 @@ public class AlertBot implements SpringLongPollingBot, LongPollingSingleThreadUp
         }
 
         String alertName = alertNameOpt.get();
+        Integer threadId;
+        if (alertName.equals(FAILED_MACHINES)) {
+            threadId = getFailedMachinesThreadId(webhook);
+        } else {
+            threadId = alertTopics.get(alertName);
+        }
 
         sendResponse(
                 properties.getChatId(),
-                alertTopics.get(alertName),
+                threadId,
                 formatWebhook(webhook),
                 "MarkdownV2"
         );
@@ -114,10 +124,10 @@ public class AlertBot implements SpringLongPollingBot, LongPollingSingleThreadUp
 
     private Map<String, Integer> buildAlertTopicMap() {
         return Map.of(
-                "APIErrorHttpCodeIncrease", properties.getTopics().getErrors5xx(),
-                "AltPayConversion", properties.getTopics().getAltpayConversion(),
-                "FailedMachines", properties.getTopics().getFailedMachines(),
-                "PendingPayments", properties.getTopics().getPendingPayments()
+                API_ERROR_HTTP_CODE_INCREASE, properties.getTopics().getErrors5xx(),
+                ALT_PAY_CONVERSION, properties.getTopics().getAltpayConversion(),
+                FAILED_MACHINES, properties.getTopics().getFailedMachines(),
+                PENDING_PAYMENTS, properties.getTopics().getPendingPayments()
         );
     }
 
@@ -275,5 +285,69 @@ public class AlertBot implements SpringLongPollingBot, LongPollingSingleThreadUp
             log.error("Ошибка при отправке сообщения", e);
         }
     }
+
+    private Integer getFailedMachinesThreadId(Webhook webhook) {
+        //достаю из лейблов поля providerId и terminalId
+        //проверяю, есть ли по сочетанию таких providerId и terminalId запись
+        // в таблице alrt_tg_bot.provider_terminal_topic
+        //если есть, то возвращаю поле threadId этой записи
+        //если нет, то создаю топик для такого сочетания providerId и terminalId, формируя название
+        // из providerName и terminalName
+        //получаю threadId
+        //и создаю в таблице alrt_tg_bot.provider_terminal_topic запись для такого сочетания providerId и terminalId
+        //затем возвращаю threadId этого топика
+
+        var alert = webhook.getAlerts().stream()
+                .filter(a -> a.getLabels() != null)
+                .filter(a -> FAILED_MACHINES.equals(a.getLabels().getAlertname()))
+                .findFirst()
+                .orElseThrow();
+
+        var labels = alert.getLabels();
+        String providerId = labels.getProviderId();
+        String terminalId = labels.getTerminalId();
+
+        var existing = providerTerminalTopicDao.findByProviderAndTerminal(providerId, terminalId);
+        if (existing.isPresent() && existing.get().getThreadId() != null) {
+            return existing.get().getThreadId();
+        }
+
+        String topicName = labels.getProviderName() + " - " + labels.getTerminalName();
+        Integer threadId = createTopicAndReturnThreadId(topicName);
+
+        var entity = new ProviderTerminalTopic(
+                threadId,
+                providerId,
+                terminalId,
+                labels.getProviderName(),
+                labels.getTerminalName(),
+                topicName
+        );
+        providerTerminalTopicDao.upsert(entity);
+
+        return threadId;
+    }
+
+    private Integer createTopicAndReturnThreadId(String topicName) {
+        try {
+            CreateForumTopic createForumTopic = CreateForumTopic.builder()
+                    .chatId(properties.getChatId())
+                    .name(topicName)
+                    .build();
+            Integer threadId = telegramClient.execute(createForumTopic).getMessageThreadId();
+            if (threadId == null) {
+                throw new IllegalStateException("Telegram вернул null messageThreadId: topicName='" + topicName + "'");
+            }
+            sendResponse(properties.getChatId(), properties.getTopics().getCommands(),
+                    "✅ Топик '" + topicName + "' создан.", null);
+            return threadId;
+        } catch (TelegramApiException e) {
+            log.error("Ошибка при создании топика topicName " + topicName, e);
+            sendResponse(properties.getChatId(), properties.getTopics().getCommands(),
+                    "❌ Ошибка при создании топика.", null);
+            throw new IllegalStateException("Ошибка при создании топика topicName=" + topicName);
+        }
+    }
+
 }
 
