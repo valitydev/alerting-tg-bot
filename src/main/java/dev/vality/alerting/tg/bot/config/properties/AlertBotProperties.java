@@ -19,10 +19,10 @@ public class AlertBotProperties {
     private Long chatId;
 
     @NotNull
-    private Topics topics;
+    private Threads threads;
 
     @Data
-    public static class Topics {
+    public static class Threads {
         @NotNull
         private Integer commands;
         @NotNull

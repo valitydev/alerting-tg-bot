@@ -10,18 +10,6 @@ public final class WebhookUtil {
     public static final String FIRING = "firing";
     public static final String RESOLVED = "resolved";
 
-    public static Optional<String> extractAlertname(Webhook webhook) {
-        if (webhook.getCommonLabels() != null) {
-            return Optional.of(webhook.getCommonLabels().getAlertname());
-        } else if (webhook.getGroupLabels() != null) {
-            return Optional.of(webhook.getGroupLabels().getAlertname());
-        } else if (webhook.getAlerts().getFirst().getLabels() != null) {
-            return Optional.of(webhook.getAlerts().getFirst().getLabels().getAlertname());
-        } else {
-            return Optional.empty();
-        }
-    }
-
     public static String formatWebhook(Webhook webhook) {
 
         Webhook.Annotation annotation = webhook.getCommonAnnotations();

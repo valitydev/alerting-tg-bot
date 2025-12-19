@@ -1,6 +1,7 @@
 package dev.vality.alerting.tg.bot.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -43,6 +44,14 @@ public class Webhook {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Label {
         private String alertname;
+        @JsonProperty("provider_id")
+        private String providerId;
+        @JsonProperty("provider_name")
+        private String providerName;
+        @JsonProperty("terminal_id")
+        private String terminalId;
+        @JsonProperty("terminal_name")
+        private String terminalName;
     }
 
     @Data

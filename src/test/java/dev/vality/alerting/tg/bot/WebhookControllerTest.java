@@ -1,15 +1,18 @@
 package dev.vality.alerting.tg.bot;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.vality.alerting.tg.bot.config.PostgresqlSpringBootITest;
 import dev.vality.alerting.tg.bot.config.properties.AlertmanagerWebhookProperties;
 import dev.vality.alerting.tg.bot.controller.WebhookController;
 import dev.vality.alerting.tg.bot.model.Webhook;
+import dev.vality.alerting.tg.bot.pojo.ProviderTerminalThread;
 import dev.vality.alerting.tg.bot.service.AlertBot;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -21,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.Mockito.verify;
 
+@PostgresqlSpringBootITest
 @SpringBootTest
 @TestPropertySource(properties = {
         "spring.cloud.vault.enabled=false",
@@ -48,6 +52,9 @@ public class WebhookControllerTest {
     @MockitoBean
     TelegramBotInitializer telegramBotInitializer;
 
+    @MockitoBean
+    RowMapper<ProviderTerminalThread> rowMapper;
+
     String webhookJson = """
             {
               "status": "firing",
@@ -56,7 +63,11 @@ public class WebhookControllerTest {
                 {
                   "status": "firing",
                   "labels": {
-                    "alertname": "Errors5xxHigh",
+                    "alertname": "FailedMachines",
+                    "provider_id": "323",
+                    "provider_name": "provider test name",
+                    "terminal_id": "32333",
+                    "terminal_name": "terminal test name",
                     "severity": "critical",
                     "job": "payments",
                     "namespace": "prod",
@@ -74,6 +85,10 @@ public class WebhookControllerTest {
                   "status": "resolved",
                   "labels": {
                     "alertname": "AltpayConversionLow",
+                    "provider_id": "323",
+                    "provider_name": "provider test name",
+                    "terminal_id": "32333",
+                    "terminal_name": "terminal test name",
                     "severity": "warning",
                     "job": "altpay",
                     "namespace": "prod",
@@ -105,7 +120,7 @@ public class WebhookControllerTest {
         assertThat(response.getStatusCode().value()).isEqualTo(200);
 
         ArgumentCaptor<Webhook> webhookCaptor = ArgumentCaptor.forClass(Webhook.class);
-        verify(alertBot).sendAlertMessage(webhookCaptor.capture());
+        verify(alertBot).sendAlertMessages(webhookCaptor.capture());
         Webhook passed = webhookCaptor.getValue();
         assertThat(passed).isNotNull();
         assertThat(passed.getAlerts()).isNotNull();

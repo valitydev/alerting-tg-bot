@@ -1,7 +1,10 @@
 package dev.vality.alerting.tg.bot.service;
 
 import dev.vality.alerting.tg.bot.config.properties.AlertBotProperties;
+import dev.vality.alerting.tg.bot.dao.ProviderTerminalThreadDao;
+import dev.vality.alerting.tg.bot.exception.TelegramThreadCreationException;
 import dev.vality.alerting.tg.bot.model.Webhook;
+import dev.vality.alerting.tg.bot.pojo.ProviderTerminalThread;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,8 +20,9 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
-import static dev.vality.alerting.tg.bot.util.WebhookUtil.extractAlertname;
+import static dev.vality.alerting.tg.bot.constant.AlertThreadName.*;
 import static dev.vality.alerting.tg.bot.util.WebhookUtil.formatWebhook;
 
 @Slf4j
@@ -29,13 +33,14 @@ public class AlertBot implements SpringLongPollingBot, LongPollingSingleThreadUp
 
     private final AlertBotProperties properties;
     private final TelegramClient telegramClient;
-    private static final Map<Long, List<String>> activeTopics = new HashMap<>();
+    private final ProviderTerminalThreadDao providerTerminalThreadDao;
+    private static final Map<Long, List<String>> activeThreads = new HashMap<>();
     private static final Set<Long> waitingForTopicName = new HashSet<>();
-    private Map<String, Integer> alertTopics;
+    private Map<String, Integer> alertThreads;
 
     @PostConstruct
     public void init() {
-        alertTopics = buildAlertTopicMap();
+        alertThreads = buildAlertThreadMap();
     }
 
     @Override
@@ -65,7 +70,7 @@ public class AlertBot implements SpringLongPollingBot, LongPollingSingleThreadUp
             Integer threadId = message.getMessageThreadId();
 
             // ❗ Фильтруем команды — они должны выполняться только в командном топике
-            if (!threadId.equals(properties.getTopics().getCommands())) {
+            if (!threadId.equals(properties.getThreads().getCommands())) {
                 return;
             }
 
@@ -73,97 +78,100 @@ public class AlertBot implements SpringLongPollingBot, LongPollingSingleThreadUp
             if (text.startsWith("/create_alert_topic")) {
                 promptForTopicName(chatId);
             } else if (waitingForTopicName.contains(chatId)) {
-                createTopic(chatId, text);
+                createThread(chatId, text);
             } else if (text.startsWith("/delete_alert_topic")) {
-                deleteTopic(chatId);
+                deleteThread(chatId);
             } else {
-                sendResponse(chatId, properties.getTopics().getCommands(), "Неизвестная команда.", null);
+                sendResponse(chatId, properties.getThreads().getCommands(), "Неизвестная команда.", null);
             }
         }
     }
 
-    public void sendAlertMessage(Webhook webhook) {
+    public void sendAlertMessages(Webhook webhook) {
         if (webhook.getAlerts() == null || webhook.getAlerts().isEmpty()) {
             return;
         }
 
-        Optional<String> alertNameOpt = extractAlertname(webhook);
+        var alertsByAlertName = webhook.getAlerts().stream()
+                .filter(a -> a.getLabels() != null)
+                .filter(a -> a.getLabels().getAlertname() != null)
+                .collect(Collectors.groupingBy(a -> a.getLabels().getAlertname()));
 
-        if (alertNameOpt.isEmpty()) {
-            log.error("Alertname is null: {}", webhook);
-            return;
+        var failedMachinesAlerts = alertsByAlertName.getOrDefault(FAILED_MACHINES, List.of());
+        if (!failedMachinesAlerts.isEmpty()) {
+            sendFailedMachinesAlerts(webhook, failedMachinesAlerts);
         }
 
-        String alertName = alertNameOpt.get();
-
-        sendResponse(
-                properties.getChatId(),
-                alertTopics.get(alertName),
-                formatWebhook(webhook),
-                "MarkdownV2"
-        );
+        alertsByAlertName.forEach((alertName, alerts) -> {
+            if (FAILED_MACHINES.equals(alertName)) {
+                return;
+            }
+            Integer threadId = alertThreads.get(alertName);
+            if (threadId == null) {
+                log.error("Неизвестный тип алерта, alertName=" + alertName);
+                throw new IllegalStateException("Неизвестный тип алерта, alertName=" + alertName);
+            }
+            sendResponse(
+                    properties.getChatId(),
+                    threadId,
+                    formatWebhook(webhook),
+                    "MarkdownV2"
+            );
+        });
     }
 
-    public void sendScheduledMetrics() {
-        send5xxErrorsMetrics(properties.getChatId());
-        sendFailedMachinesMetrics(properties.getChatId());
-        sendPendingPaymentsMetrics(properties.getChatId());
-        sendAltPayConversionMetrics(properties.getChatId());
-        sendMessageToLastTopic(properties.getChatId());
-    }
-
-    private Map<String, Integer> buildAlertTopicMap() {
+    private Map<String, Integer> buildAlertThreadMap() {
         return Map.of(
-                "APIErrorHttpCodeIncrease", properties.getTopics().getErrors5xx(),
-                "AltPayConversion", properties.getTopics().getAltpayConversion(),
-                "FailedMachines", properties.getTopics().getFailedMachines(),
-                "PendingPayments", properties.getTopics().getPendingPayments()
+                API_ERROR_HTTP_CODE_INCREASE, properties.getThreads().getErrors5xx(),
+                ALT_PAY_CONVERSION, properties.getThreads().getAltpayConversion(),
+                FAILED_MACHINES, properties.getThreads().getFailedMachines(),
+                PENDING_PAYMENTS, properties.getThreads().getPendingPayments()
         );
     }
 
-    // Просим ввести название топика (только в командном топике)
+    // Просим ввести название треда (только в командном топике)
     private void promptForTopicName(Long chatId) {
         waitingForTopicName.add(chatId);
-        sendResponse(chatId, properties.getTopics().getCommands(), "Введите название для нового топика:", null);
+        sendResponse(chatId, properties.getThreads().getCommands(), "Введите название для нового треда:", null);
     }
 
-    // Создание топика по введённому названию
-    private void createTopic(Long chatId, String topicName) {
+    // Создание треда по введённому названию
+    private void createThread(Long chatId, String threadName) {
         try {
             waitingForTopicName.remove(chatId);
 
             CreateForumTopic createForumTopic = CreateForumTopic.builder()
                     .chatId(chatId.toString())
-                    .name(topicName)
+                    .name(threadName)
                     .build();
 
             Integer messageThreadId = telegramClient.execute(createForumTopic).getMessageThreadId();
 //            activeTopics.put(chatId, String.valueOf(messageThreadId));
 
-            // Добавляем топик в список, если у чата уже есть созданные топики
-            activeTopics.computeIfAbsent(chatId, k -> new ArrayList<>()).add(String.valueOf(messageThreadId));
+            // Добавляем тред в список, если у чата уже есть созданные топики
+            activeThreads.computeIfAbsent(chatId, k -> new ArrayList<>()).add(String.valueOf(messageThreadId));
 
-            sendResponse(chatId, properties.getTopics().getCommands(), "✅ Топик '" + topicName + "' создан.", null);
-            sendResponse(chatId, null, "✅ Топик '" + topicName + "' создан.", null);
+            sendResponse(chatId, properties.getThreads().getCommands(), "✅ Тред '" + threadName + "' создан.", null);
+            sendResponse(chatId, null, "✅ Тред '" + threadName + "' создан.", null);
         } catch (TelegramApiException e) {
-            log.error("Ошибка при создании топика", e);
-            sendResponse(chatId, properties.getTopics().getCommands(), "❌ Ошибка при создании топика.", null);
+            log.error("Ошибка при создании треда", e);
+            sendResponse(chatId, properties.getThreads().getCommands(), "❌ Ошибка при создании треда.", null);
         }
     }
 
-    // Удаление топика (пока API не поддерживает удаление)
-    private void deleteTopic(Long chatId) {
-        sendResponse(chatId, properties.getTopics().getCommands(),
-                "🗑 Топик удалён (на самом деле, нет, API не поддерживает).", null);
+    // Удаление треда (пока API не поддерживает удаление)
+    private void deleteThread(Long chatId) {
+        sendResponse(chatId, properties.getThreads().getCommands(),
+                "🗑 Тред удалён (на самом деле, нет, API не поддерживает).", null);
     }
 
-    private void sendMessageToLastTopic(Long chatId) {
-        List<String> topics = activeTopics.get(chatId);
+    private void sendMessageToLastThread(Long chatId) {
+        List<String> threads = activeThreads.get(chatId);
 
-        if (topics != null && !topics.isEmpty()) {
-            String lastTopic = topics.get(topics.size() - 1);
+        if (threads != null && !threads.isEmpty()) {
+            String lastThread = threads.get(threads.size() - 1);
             String messageText = send5xxAlert();
-            sendResponse(chatId, Integer.parseInt(lastTopic), messageText, "MarkdownV2");
+            sendResponse(chatId, Integer.parseInt(lastThread), messageText, "MarkdownV2");
         }
     }
 
@@ -184,7 +192,7 @@ public class AlertBot implements SpringLongPollingBot, LongPollingSingleThreadUp
                 492, 7223, 42,
                 545, 9998, 55);
 
-        sendResponse(chatId, properties.getTopics().getErrors5xx(), messageText, "MarkdownV2");
+        sendResponse(chatId, properties.getThreads().getErrors5xx(), messageText, "MarkdownV2");
     }
 
     // Заглушка для отправки метрики "Рост числа платежей без финального статуса"
@@ -204,7 +212,7 @@ public class AlertBot implements SpringLongPollingBot, LongPollingSingleThreadUp
                 244, 7556, 42,
                 345, 1129, 55);
 
-        sendResponse(chatId, properties.getTopics().getPendingPayments(), messageText, "MarkdownV2");
+        sendResponse(chatId, properties.getThreads().getPendingPayments(), messageText, "MarkdownV2");
     }
 
     // Заглушка для отправки метрики "Рост числа упавших машин"
@@ -224,7 +232,7 @@ public class AlertBot implements SpringLongPollingBot, LongPollingSingleThreadUp
                 234, 7034, 42,
                 595, 9032, 55);
 
-        sendResponse(chatId, properties.getTopics().getFailedMachines(), messageText, "MarkdownV2");
+        sendResponse(chatId, properties.getThreads().getFailedMachines(), messageText, "MarkdownV2");
     }
 
     // Заглушка для отправки метрики "Конверсия альтернативных платежей"
@@ -244,7 +252,7 @@ public class AlertBot implements SpringLongPollingBot, LongPollingSingleThreadUp
                 240, 7234, "dead", 15.85, 90.02,
                 538, 9456, "alive", 50.10, 40.20);
 
-        sendResponse(chatId, properties.getTopics().getAltpayConversion(), messageText, "MarkdownV2");
+        sendResponse(chatId, properties.getThreads().getAltpayConversion(), messageText, "MarkdownV2");
     }
 
     // Заглушка для отправки алерта по 5xx кодам для одного провайдера и терминала
@@ -260,7 +268,6 @@ public class AlertBot implements SpringLongPollingBot, LongPollingSingleThreadUp
     }
 
 
-    // Отправка сообщения в командный топик
     private void sendResponse(Long chatId, Integer threadId, String messageText, String parseMode) {
         SendMessage message = SendMessage.builder()
                 .chatId(chatId.toString())
@@ -275,5 +282,80 @@ public class AlertBot implements SpringLongPollingBot, LongPollingSingleThreadUp
             log.error("Ошибка при отправке сообщения", e);
         }
     }
-}
 
+    private void sendFailedMachinesAlerts(Webhook webhook, List<Webhook.Alert> alerts) {
+        Map<Integer, List<Webhook.Alert>> threadIds = new HashMap<>();
+
+        for (Webhook.Alert alert : alerts) {
+            Integer threadId = getOrCreateTopicIdForFailedMachinesAlert(alert);
+            threadIds.computeIfAbsent(threadId, key -> new ArrayList<>()).add(alert);
+        }
+
+        threadIds.forEach((threadId, threadAlerts) -> {
+            sendResponse(
+                    properties.getChatId(),
+                    threadId,
+                    formatWebhook(webhook),
+                    "MarkdownV2"
+            );
+        });
+    }
+
+    private Integer getOrCreateTopicIdForFailedMachinesAlert(Webhook.Alert alert) {
+        var labels = alert.getLabels();
+        String providerId = labels.getProviderId();
+        String providerName = labels.getProviderName();
+        String terminalId = labels.getTerminalId();
+        String terminalName = labels.getTerminalName();
+
+        var existing = providerTerminalThreadDao.findByProviderAndTerminal(providerId, terminalId);
+        if (existing.isPresent() && existing.get().getThreadId() != null) {
+            return existing.get().getThreadId();
+        }
+
+        String threadName = "(" + providerId + ") " + providerName + " - (" + terminalId + ") " + terminalName;
+        Integer threadId;
+        try {
+            threadId = getOrCreateTopicIdForFailedMachinesAlert(alert);
+        } catch (TelegramThreadCreationException e) {
+            log.warn("Не удалось получить или создать threadId для алерта. Алерт будет отправлен в командный топик. {}",
+                    e.getMessage(), e);
+            threadId = properties.getThreads().getCommands();
+        }
+
+        var entity = new ProviderTerminalThread(
+                null,
+                threadId,
+                providerId,
+                terminalId,
+                labels.getProviderName(),
+                labels.getTerminalName(),
+                threadName
+        );
+        providerTerminalThreadDao.upsert(entity);
+
+        return threadId;
+    }
+
+    private Integer createTopicAndReturnThreadId(String threadName) {
+        try {
+            CreateForumTopic createForumTopic = CreateForumTopic.builder()
+                    .chatId(properties.getChatId())
+                    .name(threadName)
+                    .build();
+            Integer threadId = telegramClient.execute(createForumTopic).getMessageThreadId();
+            if (threadId == null) {
+                throw new TelegramThreadCreationException("Telegram вернул null messageThreadId: threadName='" +
+                        threadName + "'");
+            }
+            sendResponse(properties.getChatId(), properties.getThreads().getCommands(),
+                    "✅ Тред '" + threadName + "' создан.", null);
+            return threadId;
+        } catch (TelegramApiException e) {
+            log.error("Ошибка при создании треда threadName " + threadName, e);
+            sendResponse(properties.getChatId(), properties.getThreads().getCommands(),
+                    "❌ Ошибка при создании треда.", null);
+            throw new TelegramThreadCreationException("Ошибка при создании треда threadName=" + threadName);
+        }
+    }
+}
