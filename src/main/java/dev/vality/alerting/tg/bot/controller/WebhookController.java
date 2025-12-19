@@ -31,7 +31,7 @@ public class WebhookController {
             var webhookBody = servletRequest.getReader().lines().collect(Collectors.joining(" "));
             log.info("Received webhook from alertmanager: {}", webhookBody);
             var webhook = objectMapper.readValue(webhookBody, Webhook.class);
-            alertBot.sendAlertMessage(webhook);
+            alertBot.sendAlertMessages(webhook);
         } catch (Exception e) {
             log.error("Unexpected error during webhook parsing:", e);
             return ResponseEntity.internalServerError().build();

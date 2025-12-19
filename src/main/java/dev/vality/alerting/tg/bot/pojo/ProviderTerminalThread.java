@@ -11,11 +11,12 @@ import java.io.Serializable;
 @AllArgsConstructor
 @EqualsAndHashCode
 @ToString
-public class ProviderTerminalTopic implements Serializable {
+public class ProviderTerminalThread implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
 
+    private Long id;
     private Integer threadId;
     private String providerId;
     private String terminalId;

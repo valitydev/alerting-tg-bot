@@ -28,8 +28,8 @@
         <db.url>jdbc:postgresql://localhost:${db.port}/${db.name}</db.url>
         <db.user>postgres</db.user>
         <db.password>postgres</db.password>
-        <db.schema>alrt_tg_bot</db.schema>
-        <testcontainers.annotations.version>3.2.1</testcontainers.annotations.version>
+        <db.schema>alert_tg_bot</db.schema>
+        <testcontainers.annotations.version>4.0.0</testcontainers.annotations.version>
         <org.telegram.telegrambots.version>9.0.0</org.telegram.telegrambots.version>
     </properties>
 
