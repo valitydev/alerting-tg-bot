@@ -129,13 +129,13 @@ public class AlertBot implements SpringLongPollingBot, LongPollingSingleThreadUp
         );
     }
 
-    // Просим ввести название топика (только в командном топике)
+    // Просим ввести название треда (только в командном топике)
     private void promptForTopicName(Long chatId) {
         waitingForTopicName.add(chatId);
-        sendResponse(chatId, properties.getThreads().getCommands(), "Введите название для нового топика:", null);
+        sendResponse(chatId, properties.getThreads().getCommands(), "Введите название для нового треда:", null);
     }
 
-    // Создание топика по введённому названию
+    // Создание треда по введённому названию
     private void createThread(Long chatId, String threadName) {
         try {
             waitingForTopicName.remove(chatId);
@@ -148,7 +148,7 @@ public class AlertBot implements SpringLongPollingBot, LongPollingSingleThreadUp
             Integer messageThreadId = telegramClient.execute(createForumTopic).getMessageThreadId();
 //            activeTopics.put(chatId, String.valueOf(messageThreadId));
 
-            // Добавляем топик в список, если у чата уже есть созданные топики
+            // Добавляем тред в список, если у чата уже есть созданные топики
             activeThreads.computeIfAbsent(chatId, k -> new ArrayList<>()).add(String.valueOf(messageThreadId));
 
             sendResponse(chatId, properties.getThreads().getCommands(), "✅ Тред '" + threadName + "' создан.", null);
@@ -159,10 +159,10 @@ public class AlertBot implements SpringLongPollingBot, LongPollingSingleThreadUp
         }
     }
 
-    // Удаление топика (пока API не поддерживает удаление)
+    // Удаление треда (пока API не поддерживает удаление)
     private void deleteThread(Long chatId) {
         sendResponse(chatId, properties.getThreads().getCommands(),
-                "🗑 Топик удалён (на самом деле, нет, API не поддерживает).", null);
+                "🗑 Тред удалён (на самом деле, нет, API не поддерживает).", null);
     }
 
     private void sendMessageToLastThread(Long chatId) {

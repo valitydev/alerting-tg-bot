@@ -42,7 +42,6 @@ public class ProviderTerminalThreadDao extends AbstractGenericDao {
     public int upsert(ProviderTerminalThread thread) {
         var query = getDslContext()
                 .insertInto(PROVIDER_TERMINAL_THREAD)
-//                .set(PROVIDER_TERMINAL_THREAD.ID, thread.getId())
                 .set(PROVIDER_TERMINAL_THREAD.PROVIDER_ID, thread.getProviderId())
                 .set(PROVIDER_TERMINAL_THREAD.TERMINAL_ID, thread.getTerminalId())
                 .set(PROVIDER_TERMINAL_THREAD.THREAD_ID, thread.getThreadId())
