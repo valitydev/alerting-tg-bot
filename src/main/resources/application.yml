@@ -52,7 +52,7 @@ bot:
   token: ${botToken}
   name: vality_alerting_bot
   chatId: ${chatId}
-  topics:
+  threads:
     commands: ${topicCommands}
     errors5xx: ${topicErrors5xx}
     altpay-conversion: ${topicAltpayConversion}

@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.vality.alerting.tg.bot.config.PostgresqlSpringBootITest;
 import dev.vality.alerting.tg.bot.config.properties.AlertmanagerWebhookProperties;
 import dev.vality.alerting.tg.bot.controller.WebhookController;
+import dev.vality.alerting.tg.bot.handler.alert.AlertHandler;
+import dev.vality.alerting.tg.bot.handler.command.TelegramCommandHandler;
 import dev.vality.alerting.tg.bot.model.Webhook;
 import dev.vality.alerting.tg.bot.pojo.ProviderTerminalThread;
 import dev.vality.alerting.tg.bot.service.AlertBot;
@@ -20,6 +22,7 @@ import org.telegram.telegrambots.longpolling.starter.TelegramBotInitializer;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.Mockito.verify;
@@ -32,11 +35,11 @@ import static org.mockito.Mockito.verify;
         "bot.token=test",
         "bot.name=vality_alerting_bot",
         "bot.chatId=1",
-        "bot.topics.commands=1",
-        "bot.topics.errors5xx=2",
-        "bot.topics.altpay-conversion=3",
-        "bot.topics.failed-machines=4",
-        "bot.topics.pending-payments=5"
+        "bot.threads.commands=1",
+        "bot.threads.errors5xx=2",
+        "bot.threads.altpay-conversion=3",
+        "bot.threads.failed-machines=4",
+        "bot.threads.pending-payments=5"
 })
 public class WebhookControllerTest {
 
