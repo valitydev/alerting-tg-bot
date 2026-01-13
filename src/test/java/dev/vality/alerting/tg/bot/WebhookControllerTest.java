@@ -32,11 +32,11 @@ import static org.mockito.Mockito.verify;
         "bot.token=test",
         "bot.name=vality_alerting_bot",
         "bot.chatId=1",
-        "bot.topics.commands=1",
-        "bot.topics.errors5xx=2",
-        "bot.topics.altpay-conversion=3",
-        "bot.topics.failed-machines=4",
-        "bot.topics.pending-payments=5"
+        "bot.threads.commands=1",
+        "bot.threads.errors5xx=2",
+        "bot.threads.altpay-conversion=3",
+        "bot.threads.failed-machines=4",
+        "bot.threads.pending-payments=5"
 })
 public class WebhookControllerTest {
 
