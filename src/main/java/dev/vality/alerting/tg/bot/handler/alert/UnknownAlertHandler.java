@@ -18,7 +18,7 @@ import static dev.vality.alerting.tg.bot.util.WebhookUtil.formatWebhook;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class DefaultAlertHandler implements AlertHandler {
+public class UnknownAlertHandler implements AlertHandler {
     private final AlertBotProperties properties;
     private final TelegramApiService telegramApiService;
     private Map<String, Integer> alertThreads;
@@ -30,7 +30,7 @@ public class DefaultAlertHandler implements AlertHandler {
 
     @Override
     public boolean filter(String alertName) {
-        return alertName != null && !FAILED_MACHINES.equals(alertName);
+        return false;
     }
 
     @Override

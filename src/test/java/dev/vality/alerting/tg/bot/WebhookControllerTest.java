@@ -4,8 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.vality.alerting.tg.bot.config.PostgresqlSpringBootITest;
 import dev.vality.alerting.tg.bot.config.properties.AlertmanagerWebhookProperties;
 import dev.vality.alerting.tg.bot.controller.WebhookController;
-import dev.vality.alerting.tg.bot.handler.alert.AlertHandler;
-import dev.vality.alerting.tg.bot.handler.command.TelegramCommandHandler;
 import dev.vality.alerting.tg.bot.model.Webhook;
 import dev.vality.alerting.tg.bot.pojo.ProviderTerminalThread;
 import dev.vality.alerting.tg.bot.service.AlertBot;
@@ -22,7 +20,6 @@ import org.telegram.telegrambots.longpolling.starter.TelegramBotInitializer;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.Mockito.verify;

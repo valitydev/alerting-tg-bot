@@ -1,6 +1,7 @@
 package dev.vality.alerting.tg.bot.service;
 
 import dev.vality.alerting.tg.bot.config.properties.AlertBotProperties;
+import dev.vality.alerting.tg.bot.handler.alert.UnknownAlertHandler;
 import dev.vality.alerting.tg.bot.handler.command.TelegramCommandHandler;
 import dev.vality.alerting.tg.bot.handler.alert.AlertHandler;
 import dev.vality.alerting.tg.bot.model.Webhook;
@@ -24,6 +25,7 @@ import static dev.vality.alerting.tg.bot.util.WebhookUtil.formatWebhook;
 public class AlertBot implements SpringLongPollingBot, LongPollingSingleThreadUpdateConsumer {
 
     private final List<TelegramCommandHandler> eventHandlers;
+    private final UnknownAlertHandler unknownAlertHandler;
     private final List<AlertHandler> alertHandlers;
     private final AlertBotProperties properties;
     private final TelegramApiService telegramApiService;
@@ -76,18 +78,24 @@ public class AlertBot implements SpringLongPollingBot, LongPollingSingleThreadUp
                 .collect(Collectors.groupingBy(a -> a.getLabels().getAlertname()));
 
         alertsByAlertName.forEach((alertName, alerts) -> {
-            alertHandlers.stream()
+            AlertHandler handler = alertHandlers.stream()
                     .filter(h -> h.filter(alertName))
                     .findFirst()
-                    .ifPresentOrElse(
-                            h -> h.handle(webhook, alerts),
-                            () -> {
-                                log.warn("Алерт не удалось обработать, alertName={}, alertsCount={}",
-                                        alertName, alerts.size());
-                                telegramApiService.sendMessage(properties.getChatId(),
-                                        properties.getThreads().getCommands(), formatWebhook(webhook), "MarkdownV2");
-                            }
-                    );
+                    .orElse(unknownAlertHandler);
+
+            try {
+                handler.handle(webhook, alerts);
+            } catch (Exception e) {
+                log.warn("Не удалось обработать алерт. alertName={}, alertsCount={}, handler={}",
+                        alertName, alerts.size(), handler.getClass().getSimpleName(), e);
+
+                telegramApiService.sendMessage(
+                        properties.getChatId(),
+                        properties.getThreads().getCommands(),
+                        formatWebhook(webhook),
+                        "MarkdownV2"
+                );
+            }
         });
     }
 }
