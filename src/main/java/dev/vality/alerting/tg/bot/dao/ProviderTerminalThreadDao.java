@@ -16,7 +16,7 @@ public class ProviderTerminalThreadDao extends AbstractGenericDao {
 
     private final RowMapper<ProviderTerminalThread> rowMapper;
 
-    public ProviderTerminalThreadDao(DataSource dataSource, RowMapper<ProviderTerminalThread> rowMapper) {
+    public ProviderTerminalThreadDao(DataSource dataSource) {
         super(dataSource);
         this.rowMapper = new RecordRowMapper<>(PROVIDER_TERMINAL_THREAD, ProviderTerminalThread.class);
     }
