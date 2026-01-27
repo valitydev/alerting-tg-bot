@@ -1,0 +1,63 @@
+server:
+  port: 0
+management:
+  server:
+    port: 0
+  metrics:
+    tags:
+      application: alerting-tg-bot-test
+    export:
+      prometheus:
+        enabled: true
+  endpoint:
+    health:
+      show-details: always
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+
+spring:
+  application:
+    name: alerting-tg-bot-test
+  output:
+    ansi:
+      enabled: always
+  main:
+    allow-bean-definition-overriding: true
+  cloud:
+    vault:
+      enabled: false
+      kv:
+        enabled: false
+  flyway:
+    enabled: true
+    create-schemas: true
+    schemas: alert_tg_bot
+  jooq:
+    sql-dialect: POSTGRES
+
+spring.autoconfigure.exclude: org.telegram.telegrambots.longpolling.starter.TelegramBotStarterConfiguration
+
+info:
+  version: test
+  stage: test
+
+bot:
+  token: TEST_TOKEN_123456:AAAAAA
+  name: vality_alerting_bot
+  chatId: -11111111
+  threads:
+    commands: 1
+    errors5xx: 2
+    altpay-conversion: 3
+    failed-machines: 4
+    pending-payments: 5
+
+alertmanager:
+  webhook:
+    url: http://localhost:8082/alertmanager/webhook
