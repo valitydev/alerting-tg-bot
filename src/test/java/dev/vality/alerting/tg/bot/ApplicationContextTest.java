@@ -17,7 +17,7 @@ public class ApplicationContextTest {
     private ApplicationContext applicationContext;
 
     @Test
-    void applicationContextStartTest() {
+    void startApplicationContextTest() {
         assertThat(applicationContext).isNotNull();
 
         assertThat(applicationContext.getBean(ProviderTerminalThreadDao.class)).isNotNull();
