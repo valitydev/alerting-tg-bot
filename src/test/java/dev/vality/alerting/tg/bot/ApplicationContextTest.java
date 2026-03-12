@@ -1,7 +1,7 @@
 package dev.vality.alerting.tg.bot;
 
 import dev.vality.alerting.tg.bot.config.PostgresqlSpringBootITest;
-import dev.vality.alerting.tg.bot.dao.ProviderTerminalThreadDao;
+import dev.vality.alerting.tg.bot.dao.ProviderThreadDao;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -20,6 +20,6 @@ public class ApplicationContextTest {
     void startApplicationContextTest() {
         assertThat(applicationContext).isNotNull();
 
-        assertThat(applicationContext.getBean(ProviderTerminalThreadDao.class)).isNotNull();
+        assertThat(applicationContext.getBean(ProviderThreadDao.class)).isNotNull();
     }
 }

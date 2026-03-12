@@ -2,7 +2,7 @@ package dev.vality.alerting.tg.bot.handler.alert;
 
 import dev.vality.alerting.tg.bot.config.properties.AlertBotProperties;
 import dev.vality.alerting.tg.bot.model.Webhook;
-import dev.vality.alerting.tg.bot.service.FailedMachinesAlertService;
+import dev.vality.alerting.tg.bot.service.ProviderThreadService;
 import dev.vality.alerting.tg.bot.service.TelegramApiService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +22,7 @@ import static dev.vality.alerting.tg.bot.util.WebhookUtil.formatWebhook;
 public class FailedMachinesAlertHandler implements AlertHandler {
     private final AlertBotProperties properties;
     private final TelegramApiService telegramApiService;
-    private final FailedMachinesAlertService service;
+    private final ProviderThreadService service;
 
     @Override
     public boolean filter(String alertName) {
@@ -34,7 +34,7 @@ public class FailedMachinesAlertHandler implements AlertHandler {
         Map<Integer, List<Webhook.Alert>> threadIds = new HashMap<>();
 
         for (Webhook.Alert alert : alerts) {
-            Integer threadId = service.getOrCreateTopicIdForFailedMachinesAlert(alert);
+            Integer threadId = service.getOrCreateTopicId(alert);
             threadIds.computeIfAbsent(threadId, key -> new ArrayList<>()).add(alert);
         }
 
@@ -42,7 +42,7 @@ public class FailedMachinesAlertHandler implements AlertHandler {
             telegramApiService.sendMessage(
                     properties.getChatId(),
                     threadId,
-                    formatWebhook(webhook),
+                    formatWebhook(webhook, threadAlerts),
                     "MarkdownV2"
             );
         });

@@ -5,7 +5,7 @@ import dev.vality.alerting.tg.bot.config.PostgresqlSpringBootITest;
 import dev.vality.alerting.tg.bot.config.properties.AlertmanagerWebhookProperties;
 import dev.vality.alerting.tg.bot.controller.WebhookController;
 import dev.vality.alerting.tg.bot.model.Webhook;
-import dev.vality.alerting.tg.bot.pojo.ProviderTerminalThread;
+import dev.vality.alerting.tg.bot.pojo.ProviderThread;
 import dev.vality.alerting.tg.bot.service.AlertBot;
 import lombok.val;
 import org.junit.jupiter.api.Test;
@@ -53,7 +53,7 @@ public class WebhookControllerTest {
     TelegramBotInitializer telegramBotInitializer;
 
     @MockitoBean
-    RowMapper<ProviderTerminalThread> rowMapper;
+    RowMapper<ProviderThread> rowMapper;
 
     String webhookJson = """
             {
