@@ -1,6 +1,6 @@
 package dev.vality.alerting.tg.bot.config;
 
-import dev.vality.testcontainers.annotations.postgresql.PostgresqlTestcontainerSingleton;
+import dev.vality.testcontainers.annotations.postgresql.PostgresqlTestcontainer;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.lang.annotation.ElementType;
@@ -11,6 +11,6 @@ import java.lang.annotation.Target;
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @SpringBootTest
-@PostgresqlTestcontainerSingleton(excludeTruncateTables = "schema_version")
+@PostgresqlTestcontainer
 public @interface PostgresqlSpringBootITest {
 }

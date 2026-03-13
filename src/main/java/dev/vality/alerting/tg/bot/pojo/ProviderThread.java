@@ -11,7 +11,7 @@ import java.io.Serializable;
 @AllArgsConstructor
 @EqualsAndHashCode
 @ToString
-public class ProviderTerminalThread implements Serializable {
+public class ProviderThread implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
@@ -19,8 +19,6 @@ public class ProviderTerminalThread implements Serializable {
     private Long id;
     private Integer threadId;
     private String providerId;
-    private String terminalId;
     private String providerName;
-    private String terminalName;
     private String name;
 }
