@@ -8,10 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static dev.vality.alerting.tg.bot.constant.AlertThreadName.FAILED_MACHINES;
 import static dev.vality.alerting.tg.bot.util.WebhookUtil.formatWebhook;
@@ -31,12 +28,7 @@ public class FailedMachinesAlertHandler implements AlertHandler {
 
     @Override
     public void handle(Webhook webhook, List<Webhook.Alert> alerts) {
-        Map<Integer, List<Webhook.Alert>> threadIds = new HashMap<>();
-
-        for (Webhook.Alert alert : alerts) {
-            Integer threadId = service.getOrCreateTopicId(alert);
-            threadIds.computeIfAbsent(threadId, key -> new ArrayList<>()).add(alert);
-        }
+        var threadIds = service.groupAlertsByThreadId(alerts);
 
         threadIds.forEach((threadId, threadAlerts) -> {
             telegramApiService.sendMessage(

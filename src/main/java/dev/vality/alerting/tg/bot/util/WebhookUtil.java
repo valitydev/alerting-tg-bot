@@ -3,9 +3,13 @@ package dev.vality.alerting.tg.bot.util;
 import dev.vality.alerting.tg.bot.model.Webhook;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 public final class WebhookUtil {
@@ -101,5 +105,88 @@ public final class WebhookUtil {
         }
 
         return result;
+    }
+
+    public static String formatPaymentConversionAlert(Webhook.Alert alert) {
+        if (alert == null || alert.getLabels() == null) {
+            return null;
+        }
+
+        Webhook.Label labels = alert.getLabels();
+        final String statusMark = FIRING.equals(alert.getStatus()) ? "🛑" : "✅";
+        final String terminal = joinNotBlank(labels.getTerminalId(), labels.getTerminalName());
+        final String provider = joinNotBlank(labels.getProviderId(), labels.getProviderName());
+        String errorDescription = null;
+        String currentConversion = null;
+        String uniqueUsersRatio = null;
+
+        if (alert.getAnnotations() != null) {
+            String source = firstNonBlank(
+                    alert.getAnnotations().getDescription(),
+                    alert.getAnnotations().getSummary()
+            );
+            if (source != null) {
+                List<String> lines = source.lines()
+                        .map(String::trim)
+                        .filter(line -> !line.isBlank())
+                        .toList();
+
+                Function<String, String> normalize = line -> line
+                        .toLowerCase(Locale.ROOT)
+                        .replace(" ", "")
+                        .replace("_", "");
+
+                currentConversion = lines.stream()
+                        .filter(line -> normalize.apply(line).startsWith("currentconversion"))
+                        .findFirst()
+                        .orElse(null);
+                uniqueUsersRatio = lines.stream()
+                        .filter(line -> normalize.apply(line).startsWith("uniqueusersratio"))
+                        .findFirst()
+                        .orElse(null);
+                errorDescription = lines.stream()
+                        .filter(line -> !normalize.apply(line).startsWith("currentconversion"))
+                        .filter(line -> !normalize.apply(line).startsWith("uniqueusersratio"))
+                        .findFirst()
+                        .orElse(null);
+            }
+        }
+
+        StringBuilder builder = new StringBuilder();
+        builder.append("```\n")
+                .append(statusMark);
+
+        if (!terminal.isBlank()) {
+            builder.append(" ").append(terminal);
+        }
+        builder.append("\n");
+
+        if (!provider.isBlank()) {
+            builder.append("provider: ").append(provider).append("\n");
+        }
+        if (errorDescription != null && !errorDescription.isBlank()) {
+            builder.append(errorDescription).append("\n");
+        }
+        if (currentConversion != null && !currentConversion.isBlank()) {
+            builder.append(currentConversion).append("\n");
+        }
+        if (uniqueUsersRatio != null && !uniqueUsersRatio.isBlank()) {
+            builder.append(uniqueUsersRatio).append("\n");
+        }
+        builder.append("```");
+        return builder.toString();
+    }
+
+    private static String firstNonBlank(String... values) {
+        return Arrays.stream(values)
+                .filter(value -> value != null && !value.isBlank())
+                .findFirst()
+                .orElse(null);
+    }
+
+    private static String joinNotBlank(String left, String right) {
+        return Stream.of(left, right)
+                .filter(value -> value != null && !value.isBlank())
+                .collect(Collectors.joining(" "));
     }
 }

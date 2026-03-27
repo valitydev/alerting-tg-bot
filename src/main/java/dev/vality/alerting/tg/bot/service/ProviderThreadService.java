@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.*;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -17,7 +19,7 @@ public class ProviderThreadService {
     private final TelegramApiService telegramApiService;
     private final AlertBotProperties properties;
 
-    public Integer getOrCreateTopicId(Webhook.Alert alert) {
+    public Integer getOrCreateThreadId(Webhook.Alert alert) {
         var labels = alert.getLabels();
         String providerId = labels.getProviderId();
         String providerName = labels.getProviderName();
@@ -47,5 +49,19 @@ public class ProviderThreadService {
         providerThreadDao.upsert(entity);
 
         return threadId;
+    }
+
+    public Map<Integer, List<Webhook.Alert>> groupAlertsByThreadId(List<Webhook.Alert> alerts) {
+        Map<Integer, List<Webhook.Alert>> alertsByThreadId = new HashMap<>();
+        if (alerts == null || alerts.isEmpty()) {
+            return alertsByThreadId;
+        }
+
+        for (Webhook.Alert alert : alerts) {
+            Integer threadId = getOrCreateThreadId(alert);
+            alertsByThreadId.computeIfAbsent(threadId, key -> new ArrayList<>()).add(alert);
+        }
+
+        return alertsByThreadId;
     }
 }
